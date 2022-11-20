@@ -13,17 +13,63 @@ function numToAlpha(num) {
 }
 
 module.exports = {
-  makeTeams(users, numTeams) {
-    let random = FisherYates(users);
-    let teams = [];
-    for (let i = 0; i < numTeams; i++) {
-      teams.push([]);
-    }
-    random.forEach((user, index) => {
-      teams[index % numTeams].push(user);
+  makeTeams(teamSize, userPreferences) {
+    const preferences = {};
+
+    userPreferences.forEach((user) => {
+      user.preferences.forEach((pref) => {
+        if (!preferences[pref]) {
+          preferences[pref] = [];
+        }
+      });
     });
 
-    return teams;
+    for (const user of userPreferences) {
+      for (const preference of user.preferences) {
+        // if (preferences[preference].length < teamSize) {
+        preferences[preference].push(user.name);
+        // }
+      }
+    }
+
+    Object.entries(preferences).forEach(([pref, teamMembers]) => {
+      const extraTeamMembers = teamMembers.length - teamSize;
+
+      if (extraTeamMembers > 0) {
+        const extraRequiredTeams = Math.round(extraTeamMembers / teamSize);
+
+        for (let i = 0; i < extraRequiredTeams; i++) {
+          const start = teamSize + teamSize * i;
+          let end = start + teamSize;
+          if (end > teamMembers.length) {
+            end = teamMembers.length;
+          }
+
+          preferences[`${pref}${i}`] = teamMembers.slice(start, end);
+
+          // cleanup old array
+          preferences[pref] = preferences[pref].slice(0, start);
+        }
+      }
+    });
+
+    return Object.values(preferences);
+
+    // if() {
+
+    // }
+    // //If no prefences inputed or all prefences are taken
+    // else {
+    //   let random = FisherYates(users);
+    //   let teams = [];
+    //   for (let i = 0; i < numTeams; i++) {
+    //     teams.push([]);
+    //   }
+    //   random.forEach((user, index) => {
+    //     teams[index % numTeams].push(user);
+    //   });
+    // }
+    // return teams;
   },
   createMessage(teams, params) {
     var fields = [];

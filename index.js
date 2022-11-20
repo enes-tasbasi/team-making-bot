@@ -22,110 +22,114 @@ client.on("ready", () => {
   console.log(client.user.username, "is running");
 });
 
+const handleTeamCommand = (message, args) => {
+  // separate the multiline text to get the command
+  const [, ...namesAndPreferences] = message.content.split("\n");
+
+  if (!args.length) {
+    return message.channel.send(
+      `You didn't provide any arguments, ${message.author}!`
+    );
+  } else if (!parseInt(args[0])) {
+    return message.channel.send(`Please provide a number, ${message.author}!`);
+  }
+
+  // parse names and preferences
+  const userPreferences = namesAndPreferences.map((line) => {
+    const [name, preferenceString] = line.split(":");
+    const preferences = preferenceString.split(",");
+
+    return {
+      name,
+      preferences,
+    };
+  });
+
+  console.log(userPreferences);
+
+  const numTeams = Number.parseInt(args[0]);
+  const teamSize = Math.round(userPreferences.length / numTeams);
+  if (teamSize <= 1)
+    return message.channel.send(
+      `Not enough people for this team size, ${message.author}!`
+    );
+  var teams = makeTeams(teamSize, userPreferences); // works
+
+  // construct the return message
+  const text = teams
+    .map((team, index) => {
+      const teamStr = team.map((user) => user).join(", ");
+
+      return `Team ${index + 1}: ${teamStr}`;
+    })
+    .join("\n");
+
+  message.channel.send(text);
+
+  // client.guilds.fetch(message.guildId).then((guild) => {
+  //   guild.members.fetch({ withPresences: true }).then((fetchedMembers) => {
+  //     const users = [];
+
+  //     fetchedMembers.forEach((user) => {
+  //       // filter out the bot user
+  //       if (user.user.id !== client.user.id) {
+  //         users.push(user);
+  //       }
+  //     });
+
+  //     const ids = [];
+  //     ids.unshift(args[0]);
+  //     // var params = ids.join("-");
+
+  //     let numTeams = parseInt(args[0]);
+  // let teamSize = Math.round(users.length / numTeams);
+  // if (teamSize <= 1)
+  //   return message.channel.send(
+  //     `Not enough people for this team size, ${message.author}!`
+  //   );
+  // var teams = makeTeams(users, numTeams, teamSize); // works
+
+  // // construct the return message
+  // const text = teams
+  //   .map((team, index) => {
+  //     const teamStr = team.map((user) => user.displayName).join(", ");
+  //     member.roles.add(teamStr);
+  //     return `Team ${index + 1}: ${teamStr}`;
+  //   })
+  //   .join("\n");
+
+  // message.channel.send(text);
+  //   });
+  // });
+};
+
+const handleHelpCommand = (message) => {
+  const helpText =
+    "To use: send a message in the following format:\n" +
+    "!teams <number of teams>\n" +
+    "<name of person>:<list of preferences>\n" +
+    "list of preferences has to be separated by commas\n" +
+    "Make sure there are no spaces after the name and between the preferences.\n";
+
+  message.channel.send(helpText);
+};
+
 client.on("messageCreate", (message) => {
+  const [firstLine] = message.content.split("\n");
   if (
-    message.content.startsWith(prefix) &&
+    firstLine.startsWith(prefix) &&
     /* message.author.id == client.user.id || */ !message.author.bot
   ) {
-    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const args = firstLine.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
     if (command === "teams") {
-      if (!args.length) {
-        return message.channel.send(
-          `You didn't provide any arguments, ${message.author}!`
-        );
-      } else if (!parseInt(args[0])) {
-        return message.channel.send(
-          `Please provide a number, ${message.author}!`
-        );
-      }
-      // const channels = message.guild.channels.cache.filter(
-      //   (c) => c.type === "voice"
-      // );
-
-      client.guilds.fetch(message.guildId).then((guild) => {
-        guild.members.fetch({ withPresences: true }).then((fetchedMembers) => {
-          console.log(fetchedMembers);
-
-          const users = [];
-
-          fetchedMembers.forEach((user) => users.push(user));
-
-          console.log(users);
-
-          const ids = [];
-          ids.unshift(args[0]);
-          var params = ids.join("-");
-
-          let numTeams = parseInt(args[0]);
-          let teamSize = Math.round(users.length / numTeams);
-          if (teamSize <= 1)
-            return message.channel.send(
-              `Not enough people for this team size, ${message.author}!`
-            );
-          var teams = makeTeams(users, numTeams); // works
-
-          const text = teams
-            .map((team, index) => {
-              const teamStr = team.map((user) => user.displayName).join(", ");
-
-              return `Team ${index + 1}: ${teamStr}`;
-            })
-            .join("\n");
-
-          // var msg = createMessage(teams, params);
-          message.channel.send(text);
-        });
-      });
-
-      // mentions has an array of arguments that correspond to the user id
-      // !teams 2 @Enes
-      // mentions will have the userId of @Enes in the above case
-      // let mentions = args.slice(1);
-
-      // if (mentions.length) {
-      //   var exclude = [];
-      //   mentions.forEach((ex) => {
-      //     var id = getUserFromMention(ex);
-      //     ids.push(id);
-      //     var userObj = client.users.cache.get(id);
-      //     if (userObj) exclude.push(userObj.username);
-      //   });
-      //   users = users.filter((i) => exclude.indexOf(i) === -1);
-      // }
-
-      // var ids = [];
+      handleTeamCommand(message, args);
+    }
+    if (command === "help") {
+      handleHelpCommand(message);
     }
   }
-});
-
-client.on("messageReactionAdd", async (reaction, user) => {
-  if (reaction.message.partial) {
-    try {
-      await reaction.message.fetch();
-    } catch (error) {
-      console.error("Something went wrong when fetching the message: ", error);
-    }
-  }
-
-  if (
-    reaction.emoji.name === "🔄" &&
-    reaction.message.author.id == client.user.id
-  ) {
-    var text = reaction.message.embeds[0].fields
-      .pop()
-      .value.match(/\`\`\`(.*?)\n/i)[1]
-      .split("-");
-    var numTeams = text[0];
-    let mentions = text.slice(1);
-    let command = ["!teams", numTeams];
-    mentions = mentions.map((line) => `<@${line}>`);
-    command.push(...mentions);
-
-    reaction.message.channel.send(command.join(" "));
-  }
-  console.log(`${user.username} reacted with "${reaction.emoji.name}".`);
 });
 
 client.login(token);
