@@ -7,12 +7,15 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMembers,
-    // GatewayIntentBits.GuildMembers,
-    // GatewayIntentBits.DirectMessages,
   ],
 });
 const dotenv = require("dotenv");
-const { makeTeams, createMessage, getUserFromMention } = require("./utils.js");
+const {
+  makeTeams,
+  createMessage,
+  getUserFromMention,
+  makeRandomTeams,
+} = require("./utils.js");
 
 dotenv.config();
 const token = process.env.TOKEN;
@@ -21,6 +24,17 @@ const prefix = "!";
 client.on("ready", () => {
   console.log(client.user.username, "is running");
 });
+
+function constructTeamMessage(teams) {
+  // construct the return message
+  return teams
+    .map((team, index) => {
+      const teamStr = team.map((user) => user).join(", ");
+
+      return `Team ${index + 1}: ${teamStr}`;
+    })
+    .join("\n");
+}
 
 const handleTeamCommand = (message, args) => {
   // separate the multiline text to get the command
@@ -34,25 +48,6 @@ const handleTeamCommand = (message, args) => {
     return message.channel.send(`Please provide a number, ${message.author}!`);
   }
 
-  // parse names and preferences
-  const userPreferences = namesAndPreferences.map((line) => {
-    const [name, preferenceString] = line.split(":");
-    const preferences = preferenceString.split(",");
-
-    return {
-      name,
-      preferences,
-    };
-  });
-
-  const numTeams = Number.parseInt(args[0]);
-  const teamSize = Math.round(userPreferences.length / numTeams);
-  if (teamSize <= 1)
-    return message.channel.send(
-      `Not enough people for this team size, ${message.author}!`
-    );
-  const teams = makeTeams(teamSize, userPreferences); // works
-
   client.guilds.fetch(message.guildId).then((guild) => {
     guild.members.fetch({ withPresences: true }).then((fetchedMembers) => {
       const users = [];
@@ -63,6 +58,33 @@ const handleTeamCommand = (message, args) => {
           users.push(user);
         }
       });
+
+      if (namesAndPreferences.length === 0) {
+        const numTeams = Number.parseInt(args[0]);
+
+        const teams = makeRandomTeams(users, numTeams);
+        const msg = constructTeamMessage(teams);
+        return message.channel.send(msg);
+      }
+      // parse names and preferences
+      const userPreferences = namesAndPreferences.map((line) => {
+        const [name, preferenceString] = line.split(":");
+        const preferences = preferenceString.split(",");
+
+        return {
+          name,
+          preferences,
+        };
+      });
+
+      const numTeams = Number.parseInt(args[0]);
+      const teamSize = Math.round(userPreferences.length / numTeams);
+      if (teamSize <= 1) {
+        return message.channel.send(
+          `Not enough people for this team size, ${message.author}!`
+        );
+      }
+      const teams = makeTeams(teamSize, userPreferences); // works
 
       // clear all roles from all users
       const roleClearPromises = users.map((member) =>
@@ -91,15 +113,17 @@ const handleTeamCommand = (message, args) => {
           console.log(res);
 
           // construct the return message
-          const text = teams
-            .map((team, index) => {
-              const teamStr = team.map((user) => user).join(", ");
+          // const text = teams
+          //   .map((team, index) => {
+          //     const teamStr = team.map((user) => user).join(", ");
 
-              return `Team ${index + 1}: ${teamStr}`;
-            })
-            .join("\n");
+          //     return `Team ${index + 1}: ${teamStr}`;
+          //   })
+          //   .join("\n");
 
-          message.channel.send(text);
+          const msg = constructTeamMessage(teams);
+
+          message.channel.send(msg);
         });
       });
     });

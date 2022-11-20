@@ -54,22 +54,18 @@ module.exports = {
     });
 
     return Object.values(preferences);
+  },
+  makeRandomTeams(users, numTeams) {
+    let random = FisherYates(users);
+    let teams = [];
+    for (let i = 0; i < numTeams; i++) {
+      teams.push([]);
+    }
+    random.forEach((user, index) => {
+      teams[index % numTeams].push(user);
+    });
 
-    // if() {
-
-    // }
-    // //If no prefences inputed or all prefences are taken
-    // else {
-    //   let random = FisherYates(users);
-    //   let teams = [];
-    //   for (let i = 0; i < numTeams; i++) {
-    //     teams.push([]);
-    //   }
-    //   random.forEach((user, index) => {
-    //     teams[index % numTeams].push(user);
-    //   });
-    // }
-    // return teams;
+    return teams;
   },
   createMessage(teams, params) {
     var fields = [];
