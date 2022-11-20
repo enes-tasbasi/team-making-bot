@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Aveek-Saha/ClepsBot.git"
+    "url": "git+https://github.com/etasbasi/team-making-bot.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Aveek-Saha/ClepsBot/issues"
+    "url": "https://github.com/etasbasi/team-making-bot/issues"
   },
-  "homepage": "https://github.com/Aveek-Saha/ClepsBot#readme",
+  "homepage": "https://github.com/etasbasi/team-making-bot/blob/main/README.md",
   "dependencies": {
     "discord.js": "^14.6.0",
     "dotenv": "^9.0.0",
