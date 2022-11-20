@@ -45,62 +45,58 @@ const handleTeamCommand = (message, args) => {
     };
   });
 
-  console.log(userPreferences);
-
   const numTeams = Number.parseInt(args[0]);
   const teamSize = Math.round(userPreferences.length / numTeams);
   if (teamSize <= 1)
     return message.channel.send(
       `Not enough people for this team size, ${message.author}!`
     );
-  var teams = makeTeams(teamSize, userPreferences); // works
+  const teams = makeTeams(teamSize, userPreferences); // works
 
-  // construct the return message
-  const text = teams
-    .map((team, index) => {
-      const teamStr = team.map((user) => user).join(", ");
+  client.guilds.fetch(message.guildId).then((guild) => {
+    guild.members.fetch({ withPresences: true }).then((fetchedMembers) => {
+      const users = [];
 
-      return `Team ${index + 1}: ${teamStr}`;
-    })
-    .join("\n");
+      fetchedMembers.forEach((user) => {
+        // filter out the bot user
+        if (user.user.id !== client.user.id) {
+          users.push(user);
+        }
+      });
 
-  message.channel.send(text);
+      let rolePromises = [];
 
-  // client.guilds.fetch(message.guildId).then((guild) => {
-  //   guild.members.fetch({ withPresences: true }).then((fetchedMembers) => {
-  //     const users = [];
+      teams.forEach((team, index) => {
+        let role = message.guild.roles.cache.find(
+          (role) => role.name === `Team ${index + 1}`
+        );
+        console.log(role);
 
-  //     fetchedMembers.forEach((user) => {
-  //       // filter out the bot user
-  //       if (user.user.id !== client.user.id) {
-  //         users.push(user);
-  //       }
-  //     });
+        rolePromises = [
+          ...rolePromises,
+          ...team.map((name) => {
+            const member = users.find((user) => user.displayName === name);
+            return member.roles.add(role).catch(console.log);
+          }),
+        ];
+      });
 
-  //     const ids = [];
-  //     ids.unshift(args[0]);
-  //     // var params = ids.join("-");
+      Promise.allSettled(rolePromises).then((res) => {
+        console.log(res);
 
-  //     let numTeams = parseInt(args[0]);
-  // let teamSize = Math.round(users.length / numTeams);
-  // if (teamSize <= 1)
-  //   return message.channel.send(
-  //     `Not enough people for this team size, ${message.author}!`
-  //   );
-  // var teams = makeTeams(users, numTeams, teamSize); // works
+        // construct the return message
+        const text = teams
+          .map((team, index) => {
+            const teamStr = team.map((user) => user).join(", ");
 
-  // // construct the return message
-  // const text = teams
-  //   .map((team, index) => {
-  //     const teamStr = team.map((user) => user.displayName).join(", ");
-  //     member.roles.add(teamStr);
-  //     return `Team ${index + 1}: ${teamStr}`;
-  //   })
-  //   .join("\n");
+            return `Team ${index + 1}: ${teamStr}`;
+          })
+          .join("\n");
 
-  // message.channel.send(text);
-  //   });
-  // });
+        message.channel.send(text);
+      });
+    });
+  });
 };
 
 const handleHelpCommand = (message) => {
