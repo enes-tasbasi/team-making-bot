@@ -64,36 +64,43 @@ const handleTeamCommand = (message, args) => {
         }
       });
 
-      let rolePromises = [];
+      // clear all roles from all users
+      const roleClearPromises = users.map((member) =>
+        member.roles.remove(member.roles.cache)
+      );
 
-      teams.forEach((team, index) => {
-        let role = message.guild.roles.cache.find(
-          (role) => role.name === `Team ${index + 1}`
-        );
-        console.log(role);
+      Promise.allSettled(roleClearPromises).then((res) => {
+        let rolePromises = [];
 
-        rolePromises = [
-          ...rolePromises,
-          ...team.map((name) => {
-            const member = users.find((user) => user.displayName === name);
-            return member.roles.add(role).catch(console.log);
-          }),
-        ];
-      });
+        teams.forEach((team, index) => {
+          let role = message.guild.roles.cache.find(
+            (role) => role.name === `Team ${index + 1}`
+          );
+          console.log(role);
 
-      Promise.allSettled(rolePromises).then((res) => {
-        console.log(res);
+          rolePromises = [
+            ...rolePromises,
+            ...team.map((name) => {
+              const member = users.find((user) => user.displayName === name);
+              return member.roles.add(role).catch(console.log);
+            }),
+          ];
+        });
 
-        // construct the return message
-        const text = teams
-          .map((team, index) => {
-            const teamStr = team.map((user) => user).join(", ");
+        Promise.allSettled(rolePromises).then((res) => {
+          console.log(res);
 
-            return `Team ${index + 1}: ${teamStr}`;
-          })
-          .join("\n");
+          // construct the return message
+          const text = teams
+            .map((team, index) => {
+              const teamStr = team.map((user) => user).join(", ");
 
-        message.channel.send(text);
+              return `Team ${index + 1}: ${teamStr}`;
+            })
+            .join("\n");
+
+          message.channel.send(text);
+        });
       });
     });
   });
