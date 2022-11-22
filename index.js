@@ -59,62 +59,77 @@ const handleTeamCommand = (message, args) => {
         member.roles.remove(member.roles.cache)
       );
 
-      if (namesAndPreferences.length === 0) {
-        const numTeams = Number.parseInt(args[0]);
-
-        const teams = makeRandomTeams(users, numTeams);
-        const msg = constructTeamMessage(teams);
-        return message.channel.send(msg);
-      }
-      // parse names and preferences
-      const userPreferences = namesAndPreferences.map((line) => {
-        const [name, preferenceString] = line.split(":");
-        const preferences = preferenceString.split(",");
-
-        return {
-          name,
-          preferences,
-        };
-      });
-
-      const numTeams = Number.parseInt(args[0]);
-      const teamSize = Math.round(userPreferences.length / numTeams);
-      if (teamSize <= 1) {
-        return message.channel.send(
-          `Not enough people for this team size, ${message.author}!`
-        );
-      }
-      const teams = makeTeams(teamSize, userPreferences); // works
-
       Promise.allSettled(roleClearPromises).then((res) => {
-        let rolePromises = [];
+        if (namesAndPreferences.length === 0) {
+          const numTeams = Number.parseInt(args[0]);
 
-        teams.forEach((team, index) => {
-          let role = message.guild.roles.cache.find(
-            (role) => role.name === `Team ${index + 1}`
-          );
-          console.log(role);
+          const teams = makeRandomTeams(users, numTeams);
 
-          rolePromises = [
-            ...rolePromises,
-            ...team.map((name) => {
-              const member = users.find((user) => user.displayName === name);
+          const rolePromises = teams.flatMap((team) =>
+            team.flatMap((member, index) => {
+              let role = message.guild.roles.cache.find(
+                (role) => role.name === `Team ${index + 1}`
+              );
+
               return member.roles.add(role).catch(console.log);
-            }),
-          ];
-        });
+            })
+          );
 
-        Promise.allSettled(rolePromises).then((res) => {
-          const teamsWithRefs = teams.map((team, index) => {
-            return team.map((name) =>
-              users.find((user) => user.displayName === name)
-            );
+          Promise.allSettled(rolePromises).then((res) => {
+            console.log(res);
+            const msg = constructTeamMessage(teams);
+            return message.channel.send(msg);
+          });
+        } else {
+          // parse names and preferences
+          const userPreferences = namesAndPreferences.map((line) => {
+            const [name, preferenceString] = line.split(":");
+            const preferences = preferenceString.split(",");
+
+            return {
+              name,
+              preferences,
+            };
           });
 
-          const msg = constructTeamMessage(teamsWithRefs);
+          const numTeams = Number.parseInt(args[0]);
+          const teamSize = Math.round(userPreferences.length / numTeams);
+          // if (teamSize <= 1) {
+          //   return message.channel.send(
+          //     `Not enough people for this team size, ${message.author}!`
+          //   );
+          // }
+          const teams = makeTeams(teamSize, userPreferences); // works
 
-          message.channel.send(msg);
-        });
+          let rolePromises = [];
+
+          teams.forEach((team, index) => {
+            let role = message.guild.roles.cache.find(
+              (role) => role.name === `Team ${index + 1}`
+            );
+            console.log(role);
+
+            rolePromises = [
+              ...rolePromises,
+              ...team.map((name) => {
+                const member = users.find((user) => user.displayName === name);
+                return member.roles.add(role).catch(console.log);
+              }),
+            ];
+          });
+
+          Promise.allSettled(rolePromises).then((res) => {
+            const teamsWithRefs = teams.map((team, index) => {
+              return team.map((name) =>
+                users.find((user) => user.displayName === name)
+              );
+            });
+
+            const msg = constructTeamMessage(teamsWithRefs);
+
+            message.channel.send(msg);
+          });
+        }
       });
     });
   });

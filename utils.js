@@ -28,6 +28,7 @@ module.exports = {
       for (const preference of user.preferences) {
         // if (preferences[preference].length < teamSize) {
         preferences[preference].push(user.name);
+        break;
         // }
       }
     }
