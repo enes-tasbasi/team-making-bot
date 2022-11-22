@@ -10,12 +10,7 @@ const client = new Client({
   ],
 });
 const dotenv = require("dotenv");
-const {
-  makeTeams,
-  createMessage,
-  getUserFromMention,
-  makeRandomTeams,
-} = require("./utils.js");
+const { makeTeams, makeRandomTeams } = require("./utils.js");
 
 dotenv.config();
 const token = process.env.TOKEN;
@@ -59,6 +54,11 @@ const handleTeamCommand = (message, args) => {
         }
       });
 
+      // clear all roles from all users
+      const roleClearPromises = users.map((member) =>
+        member.roles.remove(member.roles.cache)
+      );
+
       if (namesAndPreferences.length === 0) {
         const numTeams = Number.parseInt(args[0]);
 
@@ -86,11 +86,6 @@ const handleTeamCommand = (message, args) => {
       }
       const teams = makeTeams(teamSize, userPreferences); // works
 
-      // clear all roles from all users
-      const roleClearPromises = users.map((member) =>
-        member.roles.remove(member.roles.cache)
-      );
-
       Promise.allSettled(roleClearPromises).then((res) => {
         let rolePromises = [];
 
@@ -110,18 +105,13 @@ const handleTeamCommand = (message, args) => {
         });
 
         Promise.allSettled(rolePromises).then((res) => {
-          console.log(res);
+          const teamsWithRefs = teams.map((team, index) => {
+            return team.map((name) =>
+              users.find((user) => user.displayName === name)
+            );
+          });
 
-          // construct the return message
-          // const text = teams
-          //   .map((team, index) => {
-          //     const teamStr = team.map((user) => user).join(", ");
-
-          //     return `Team ${index + 1}: ${teamStr}`;
-          //   })
-          //   .join("\n");
-
-          const msg = constructTeamMessage(teams);
+          const msg = constructTeamMessage(teamsWithRefs);
 
           message.channel.send(msg);
         });
